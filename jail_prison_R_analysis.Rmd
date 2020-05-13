@@ -101,6 +101,8 @@ county_jp <- jp %>% filter(county==countyname,state==statename)
 county_nyt<- nyt_data %>% filter(county==countyname,state==statename)
 jp_nyt_county <- merge(county_jp,county_nyt,by=c('date','county','state')) %>% select(county,date,jail_population,cases)
 
+melt(jp_nyt_county, id=c('date','county'))
+
 ggplot(data=melt(jp_nyt_county, id=c('date','county'))) + geom_line(aes(date,value,color=variable))
 ```
 
@@ -129,13 +131,14 @@ ggplot(data = diff_df) + geom_point(aes((log(p_red_jail_pop)),log(pdiff_cases)))
 diff_df
 ```
 
-% Consider counties close in population to Clackamas
+
+Consider counties close in population to Clackamas
 ```{r}
 state_by_state <- merge(nyt_jp_recent,diff_df) %>% select(county,state,jail_population,resident_population,jail_incarceration_rate_per_100k,cases,p_red_jail_pop,pdiff_cases)
-small_state <- state_by_state %>% filter(abs(resident_population-418187)<50000) %>% arrange(desc(p_red_jail_pop))
+small_state <- state_by_state %>% filter(abs(jail_incarceration_rate_per_100k-32.8)<50000) %>% arrange(desc(p_red_jail_pop))
 
 ggplot(small_state) + geom_point(aes(p_red_jail_pop,pdiff_cases))
-small_state
+state_by_state
 ```
 
 Mobile has a similar population, no jail reduction in population
@@ -177,13 +180,57 @@ pr <- pr %>% rename(prior_pop = 'Population Prior to Releases',releases = "Overa
 pr$releases <- as.numeric(pr$releases)
 pr$frac_released <- pr$releases/pr$prior_pop
 pr <- pr %>% drop_na()
-pr
+pr %>% arrange(frac_released)
 ```
+
+```{r}
+tmp <- merge(nyt_data,PRDF) %>% group_by(state,date) %>% mutate(total_cases = sum(cases)) %>% select(state,date,total_cases,frac_released) %>% unique()
+ggplot(tmp) + geom_line(aes(date,total_cases,color=state))
+```
+
 
 covid statistics for counties containing prisons
 ```{r}
 PRDF <- merge(pr,prison_df) %>% select(State,frac_released,county) %>% rename(state=State)
 nyt_data$county <- tolower(nyt_data$county)
-merge(nyt_data,PRDF)
+state_PRDF <- merge(nyt_data,PRDF) %>% filter(state=='Vermont') %>% select(county,state,date,cases)
+state_PRDF
+ggplot(state_PRDF) + geom_line(aes(date,cases,color=county))
+```
+
+```{r}
+PRDF <- merge(pr,prison_df) %>% select(State,frac_released,county) %>% rename(state=State)
+nyt_data$county <- tolower(nyt_data$county)
+state_PRDF <- merge(nyt_data,PRDF) %>% filter(state=='Pennsylvania') %>% select(county,state,date,cases)
+state_PRDF
+ggplot(state_PRDF) + geom_line(aes(date,cases,color=county))
+```
+
+
+```{r}
+# jail population dataframe with fraction released
+
+jp_frac_rel <- jp %>% group_by(county,state) %>% filter(first(jail_population) >20)%>% 
+  mutate(num_released = first(jail_population)-last(jail_population)) %>% 
+  mutate(frac_released = num_released/first(jail_population)) %>%
+  select(county,state,frac_released,num_released,resident_population) %>%
+  unique() %>% arrange(desc(frac_released))
+
+unname(quantile(jp_frac_rel$frac_released, c(.2,.4,.6,.8,1)))
+
+
+jp_frac_rel$quantile <- ifelse(jp_frac_rel$frac_released<.08,5,
+                               ifelse(jp_frac_rel$frac_released<.19,4,
+                                      ifelse(jp_frac_rel$frac_released<.29,3,
+                                             ifelse(jp_frac_rel$frac_released<.40,2,1))))
+
+jp_frac_rel
+
+release_df <- merge(nyt_recent,jp_frac_rel) %>%
+  select(state,county,cases,deaths,frac_released,quantile,resident_population) %>%
+  mutate(infection_rate=cases/resident_population)
+release_df$quantile <- as.factor(release_df$quantile)
+
+ggplot(release_df) + geom_violin(aes(quantile,log(infection_rate)))
 ```
 
