@@ -95,39 +95,43 @@ PRDF %>% select(county,state,frac_released,date,cases,deaths)
 ```
 
 
-
+(Not 100% sure about this analysis)
 ```{r}
 # jail population dataframe with fraction released
 
-jp_frac_rel <- jp %>% group_by(county,state) %>% filter(first(jail_population) >20)%>% 
+frac_rel <- full_data %>% group_by(county,state) %>% filter(first(jail_population) >20)%>% 
   mutate(num_released = first(jail_population)-last(jail_population)) %>% 
   mutate(frac_released = num_released/first(jail_population)) %>%
-  select(county,state,frac_released,num_released,resident_population) %>%
+  mutate(infection_rate=cases/resident_population) %>%
+  select(county,state,frac_released,num_released,resident_population,infection_rate) %>%
   unique() %>% arrange(desc(frac_released))
+  
+frac_rel
 
 # 5 quantiles
-(quantile(jp_frac_rel$frac_released, c(.2,.4,.6,.8,1)))
+(quantile(frac_rel$frac_released, c(.2,.4,.6,.8,1)))
 
 
-jp_frac_rel$quantile <- ifelse(jp_frac_rel$frac_released<.08,5,
-                               ifelse(jp_frac_rel$frac_released<.19,4,
-                                      ifelse(jp_frac_rel$frac_released<.29,3,
-                                             ifelse(jp_frac_rel$frac_released<.40,2,1))))
+frac_rel$quantile <- ifelse(frac_rel$frac_released<.08,5,
+                               ifelse(frac_rel$frac_released<.16,4,
+                                      ifelse(frac_rel$frac_released<.24,3,
+                                             ifelse(frac_rel$frac_released<.34,2,1))))
 
-jp_frac_rel
+frac_rel$quantile <- as.factor(frac_rel$quantile)
 
-release_df <- merge(nyt_recent,jp_frac_rel) %>%
-  select(state,county,cases,deaths,frac_released,quantile,resident_population) %>%
-  mutate(infection_rate=cases/resident_population)
-release_df$quantile <- as.factor(release_df$quantile)
+release_df <- merge(full_data_recent,frac_rel) %>%
+  mutate(infection_rate=cases/resident_population) %>% select(county,state,resident_population,infection_rate,frac_released,quantile) %>% unique()
+release_df$quantile <- as.factor(release_df$quantile) 
 
+table(release_df$quantile)
+
+release_df
 ggplot(release_df) + geom_violin(aes(quantile,log(infection_rate)))
 ```
 
 
+
 ```{r}
-release_df
-filtered_df <- release_df %>% filter(state %in% c('California','Oregon','Ohio','Michigan','New York'))
-ggplot(filtered_df) + geom_point(aes((frac_released),log(infection_rate),color=state,size=resident_population))
+ggplot(release_df) + geom_point(aes(log(frac_released),log(infection_rate)))
 ```
 
