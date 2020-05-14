@@ -2,55 +2,6 @@
 library(tidyverse)
 ```
 
-Taken from Tia's work
-
-```{r}
-setwd("~/Documents/Python/Datathon/MIT_COVID-19_Datathon")
-tx = read_csv('TX_summary.csv',)
-tx <- tx %>% select('county','jail_population','jail_incarceration_rate_per_100k',
-                    'resident_population','infection_rate_countypop',
-                    'infection_rate_inmates','prior_pop','releases',
-                    'frac_reduction')
-tx$state <- rep('Texas',nrow(tx))
-
-ca = read_csv('CA_summary.csv',)
-ca <- ca %>% select('county','jail_population','jail_incarceration_rate_per_100k',
-                    'resident_population','infection_rate_countypop',
-                    'infection_rate_inmates','prior_pop','releases',
-                    'frac_reduction')
-ca$state <- rep('California',nrow(ca))
-
-oh = read_csv('OH_summary.csv',)
-oh <- oh %>% select('county', 
-                    'jail_population', 
-                    'jail_incarceration_rate_per_100k',
-                    'resident_population', 
-                    'infection_rate_countypop')
-oh$state <- rep('Ohio',nrow(oh))
-
-or = read_csv('OR_summary.csv',)
-or <- or %>% select('county', 
-                    'jail_population', 
-                    'jail_incarceration_rate_per_100k',
-                    'resident_population', 
-                    'infection_rate_countypop')
-or$state <- rep('Oregon',nrow(or))
-or
-```
-
-release: whether or not there is a record of release for that jail
-```{r}
-tx$release <- 1-is.na(tx$frac_reduction)
-ca$release <- 1-is.na(ca$frac_reduction)
-ca
-```
-
-```{r}
-ggplot(data = tx) + geom_point(aes(jail_incarceration_rate_per_100k,infection_rate_countypop,color=release,size = jail_population)) + xlim(0,1500)
-ggplot(data = ca) + geom_point(aes(jail_incarceration_rate_per_100k,infection_rate_countypop,color=release,size = jail_population)) + xlim(0,500)
-ggplot(data = ca) + geom_point(aes(log(jail_population),log(infection_rate_countypop),color=release))
-```
-
 nyt_data: county-level COVID statistics
 jp: jail population, surrounding county population
 ```{r}
@@ -100,7 +51,8 @@ statename = 'Oregon'
 county_jp <- jp %>% filter(county==countyname,state==statename)
 county_nyt<- nyt_data %>% filter(county==countyname,state==statename)
 jp_nyt_county <- merge(county_jp,county_nyt,by=c('date','county','state')) %>% select(county,date,jail_population,cases)
-
+jp_nyt_county$release_rate <- (lag(jp_nyt_county$jail_population,3)-jp_nyt_county$jail_population)/lag(jp_nyt_county$jail_population,3)*500
+jp_nyt_county
 melt(jp_nyt_county, id=c('date','county'))
 
 ggplot(data=melt(jp_nyt_county, id=c('date','county'))) + geom_line(aes(date,value,color=variable))
@@ -183,28 +135,15 @@ pr <- pr %>% drop_na()
 pr %>% arrange(frac_released)
 ```
 
+For each prison county, the cases over time, and the fraction of prisoners released in that state
 ```{r}
-tmp <- merge(nyt_data,PRDF) %>% group_by(state,date) %>% mutate(total_cases = sum(cases)) %>% select(state,date,total_cases,frac_released) %>% unique()
-ggplot(tmp) + geom_line(aes(date,total_cases,color=state))
-```
-
-
-covid statistics for counties containing prisons
-```{r}
+# state, frac_released, county containing a prison
 PRDF <- merge(pr,prison_df) %>% select(State,frac_released,county) %>% rename(state=State)
 nyt_data$county <- tolower(nyt_data$county)
-state_PRDF <- merge(nyt_data,PRDF) %>% filter(state=='Vermont') %>% select(county,state,date,cases)
-state_PRDF
-ggplot(state_PRDF) + geom_line(aes(date,cases,color=county))
+PRDF <- merge(nyt_data,PRDF)
+PRDF %>% select(county,state,frac_released,date,cases,deaths)
 ```
 
-```{r}
-PRDF <- merge(pr,prison_df) %>% select(State,frac_released,county) %>% rename(state=State)
-nyt_data$county <- tolower(nyt_data$county)
-state_PRDF <- merge(nyt_data,PRDF) %>% filter(state=='Pennsylvania') %>% select(county,state,date,cases)
-state_PRDF
-ggplot(state_PRDF) + geom_line(aes(date,cases,color=county))
-```
 
 
 ```{r}
@@ -216,7 +155,8 @@ jp_frac_rel <- jp %>% group_by(county,state) %>% filter(first(jail_population) >
   select(county,state,frac_released,num_released,resident_population) %>%
   unique() %>% arrange(desc(frac_released))
 
-unname(quantile(jp_frac_rel$frac_released, c(.2,.4,.6,.8,1)))
+# 5 quantiles
+(quantile(jp_frac_rel$frac_released, c(.2,.4,.6,.8,1)))
 
 
 jp_frac_rel$quantile <- ifelse(jp_frac_rel$frac_released<.08,5,
@@ -232,5 +172,12 @@ release_df <- merge(nyt_recent,jp_frac_rel) %>%
 release_df$quantile <- as.factor(release_df$quantile)
 
 ggplot(release_df) + geom_violin(aes(quantile,log(infection_rate)))
+```
+
+
+```{r}
+release_df
+filtered_df <- release_df %>% filter(state %in% c('California','Oregon','Ohio','Michigan','New York'))
+ggplot(filtered_df) + geom_point(aes((frac_released),log(infection_rate),color=state,size=resident_population))
 ```
 
