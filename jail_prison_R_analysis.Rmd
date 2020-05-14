@@ -97,8 +97,12 @@ PRDF <- PRDF %>% select(county,state,frac_released,date,cases,deaths)
 write.csv(PRDF,"prison_county_df.csv")
 ```
 
+```{r}
+PRDF
+```
 
-(Not 100% sure about this analysis)
+
+(Not 100% sure about this analysis--please help!)
 ```{r}
 # jail population dataframe with fraction released
 
