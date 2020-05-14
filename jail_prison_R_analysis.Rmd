@@ -13,111 +13,56 @@ jp$county<-str_remove(jp$county," County")
 nyt_data %>% select(date,county,state,cases,deaths) %>% arrange(county)
 jp %>% select(date,county,state,jail_population,resident_population,jail_incarceration_rate_per_100k,urbanicity)
 
-full_data <- merge(jp,nyt_data,by = c('date','county','state')) %>% select(date,county,state,jail_population,resident_population,
-                                                              cases,deaths)
+full_data <- merge(jp,nyt_data,by = c('date','county','state')) %>% select(date,county,state,jail_population,resident_population,cases,deaths,jail_incarceration_rate_per_100k,urbanicity)
 full_data %>% arrange(county,state)
 ```
 
 recent: most recent statistics
-
 ```{r}
-jp_recent <- jp %>% filter(date == as.Date("2020-05-011"))
-nyt_recent <- nyt_data %>% filter(date == as.Date("2020-05-011"))
-nyt_jp_recent <-merge(x=jp_recent,y=nyt_recent,by=c('county','state'),all.x=TRUE) %>% select(county,state,jail_population,resident_population,
-                                                                                             jail_incarceration_rate_per_100k,cases,deaths) %>%
-  filter(!is.na(cases))
-nyt_jp_recent$cases_per_capita <- nyt_jp_recent$cases/nyt_jp_recent$resident_population
-nyt_jp_recent
-ggplot(data = nyt_jp_recent) + geom_point(aes(log(jail_population),log(resident_population),color=log(cases_per_capita)))+scale_color_gradient(low="blue", high="red")
+full_data_recent <- full_data %>% filter(date == as.Date("2020-05-11"))
+ggplot(data = full_data_recent) + 
+  geom_point(aes(log(jail_incarceration_rate_per_100k),log(cases),color=log(resident_population)))+
+  scale_color_gradient(low="blue", high="red")
 ```
 
+
+% difference in jail population and cases from March 1st to now
 ```{r}
-jp_recent <- jp %>% filter(date == as.Date("2020-05-011"))
-nyt_recent <- nyt_data %>% filter(date == as.Date("2020-05-011"))
-nyt_jp_recent <-merge(x=jp_recent,y=nyt_recent,by=c('county','state'),all.x=TRUE) %>% select(county,state,jail_population,resident_population,
-                                                                                             jail_incarceration_rate_per_100k,cases,deaths) %>%
-  filter(!is.na(cases))
-nyt_jp_recent$cases_per_capita <- nyt_jp_recent$cases/nyt_jp_recent$resident_population
-nyt_jp_recent
-ggplot(data = nyt_jp_recent) + geom_point(aes(log(jail_incarceration_rate_per_100k),log(cases_per_capita)))
+full_data %>% arrange((date)) 
+diff_df <- full_data %>% arrange((date)) %>% filter(date >= as.Date("2020-03-01")) %>% group_by(county,state) %>%
+  mutate(frac_jail_red = (first(jail_population)-last(jail_population))/first(jail_population)) %>%
+  mutate(frac_increase_cases = (last(cases)-first(cases))/first(cases)) %>%
+  select(county,state,frac_jail_red,frac_increase_cases) %>% distinct %>% arrange(desc(frac_increase_cases))
+diff_df
 ```
 
-% difference in jail population from March 1st to now
+Relationship between % difference in cases and % difference in jail population?
 ```{r}
-jp_diff <- jp %>% filter(jail_population>100)%>% filter(date >= as.Date("2020-03-01")) %>% group_by(county,state) %>% mutate(p_red_jail_pop = (first(jail_population)-last(jail_population))/first(jail_population)) %>%
-  select(county,state,p_red_jail_pop) %>% distinct %>% arrange(desc(p_red_jail_pop))
-jp_diff
+diff_df
+ggplot(data = diff_df) + geom_point(aes((log(frac_jail_red)),log(frac_increase_cases)))
 ```
 
 Look at a particular county
 ```{r}
 countyname = 'Clackamas'
 statename = 'Oregon'
-county_jp <- jp %>% filter(county==countyname,state==statename)
-county_nyt<- nyt_data %>% filter(county==countyname,state==statename)
-jp_nyt_county <- merge(county_jp,county_nyt,by=c('date','county','state')) %>% select(county,date,jail_population,cases)
-jp_nyt_county$release_rate <- (lag(jp_nyt_county$jail_population,3)-jp_nyt_county$jail_population)/lag(jp_nyt_county$jail_population,3)*500
-jp_nyt_county
-melt(jp_nyt_county, id=c('date','county'))
+county_data <- full_data %>% filter(county==countyname,state==statename)%>% select(county,date,jail_population,cases)
+county_data$release_rate <- (lag(county_data$jail_population,3)-county_data$jail_population)/lag(county_data$jail_population,3)*500
+county_data
 
-ggplot(data=melt(jp_nyt_county, id=c('date','county'))) + geom_line(aes(date,value,color=variable))
+ggplot(data=melt(county_data, id=c('date','county'))) + geom_line(aes(date,value,color=variable))
 ```
 
 Look at an entire state
 ```{r}
 statename = 'Oregon'
-state_jp <- jp %>% filter(state==statename) %>% group_by(date) %>% mutate(total_jailed = sum(jail_population)) %>% select(date,state,total_jailed) %>% unique()
-state_nyt<- nyt_data %>% filter(state==statename) %>% group_by(date) %>% mutate(total_cases = sum(cases)) %>% select(date,state,total_cases) %>% unique()
-jp_nyt_state <- merge(state_jp,state_nyt,by=c('date','state')) %>% select(date,total_jailed,total_cases)
-jp_nyt_state
-ggplot(data=melt(jp_nyt_state, id=c('date'))) + geom_line(aes(date,value,color=variable))
+state_data <- full_data %>% filter(state==statename) %>% group_by(date) %>% mutate(total_jailed = sum(jail_population)) %>%
+  mutate(total_cases = sum(cases)) %>% select(date,total_jailed,total_cases) %>% unique()
+state_data
+ggplot(data=melt(state_data, id=c('date'))) + geom_line(aes(date,value,color=variable))
 ```
 
-% difference in cases from March 1st to now
-```{r}
-nyt_diff <- nyt_data %>% filter(date >= as.Date("2020-03-01")) %>% group_by(county,state) %>% mutate(pdiff_cases = (last(cases)-first(cases))/first(cases)) %>% arrange(desc(pdiff_cases)) %>% select(county,state,pdiff_cases) %>% distinct
-nyt_diff %>% filter(pdiff_cases < Inf)
-```
-
-Relationship between % difference in cases and % difference in jail population?
-```{r}
-diff_df <- merge(jp_diff,nyt_diff)
-diff_df <- diff_df %>% drop_na()
-diff_df$p_red_jail_pop <- diff_df$p_red_jail_pop
-ggplot(data = diff_df) + geom_point(aes((log(p_red_jail_pop)),log(pdiff_cases)))
-diff_df
-```
-
-
-Consider counties close in population to Clackamas
-```{r}
-state_by_state <- merge(nyt_jp_recent,diff_df) %>% select(county,state,jail_population,resident_population,jail_incarceration_rate_per_100k,cases,p_red_jail_pop,pdiff_cases)
-small_state <- state_by_state %>% filter(abs(jail_incarceration_rate_per_100k-32.8)<50000) %>% arrange(desc(p_red_jail_pop))
-
-ggplot(small_state) + geom_point(aes(p_red_jail_pop,pdiff_cases))
-state_by_state
-```
-
-Mobile has a similar population, no jail reduction in population
-```{r}
-countyname = 'Mobile'
-statename = 'Alabama'
-county_jp <- jp %>% filter(county==countyname,state==statename)
-county_nyt<- nyt_data %>% filter(county==countyname,state==statename)
-jp_nyt_county <- merge(county_jp,county_nyt,by=c('date','county','state')) %>% select(county,date,jail_population,cases)
-
-ggplot(data=melt(jp_nyt_county, id=c('date','county'))) + geom_line(aes(date,value,color=variable))
-```
-
-```{r}
-countyname = 'Clackamas'
-statename = 'Oregon'
-county_jp <- jp %>% filter(county==countyname,state==statename)
-county_nyt<- nyt_data %>% filter(county==countyname,state==statename)
-jp_nyt_county <- merge(county_jp,county_nyt,by=c('date','county','state')) %>% select(county,date,jail_population,cases)
-
-ggplot(data=melt(jp_nyt_county, id=c('date','county'))) + geom_line(aes(date,value,color=variable))
-```
+Prison analysis
 
 ```{r}
 prisons <- read_csv('prison_boundaries.csv')
