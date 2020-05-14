@@ -4,6 +4,7 @@ library(tidyverse)
 
 nyt_data: county-level COVID statistics
 jp: jail population, surrounding county population
+full data: jail population, cases, deaths for each county over time
 ```{r}
 nyt_data = read_csv('NYT_data/us-counties.csv')
 jp = read_csv('https://raw.githubusercontent.com/vera-institute/jail-population-data/master/jail_population.csv')
@@ -11,6 +12,10 @@ jp <- jp %>% rename(county = county_name) %>% rename(state=state_name) %>% arran
 jp$county<-str_remove(jp$county," County")
 nyt_data %>% select(date,county,state,cases,deaths) %>% arrange(county)
 jp %>% select(date,county,state,jail_population,resident_population,jail_incarceration_rate_per_100k,urbanicity)
+
+full_data <- merge(jp,nyt_data,by = c('date','county','state')) %>% select(date,county,state,jail_population,resident_population,
+                                                              cases,deaths)
+full_data %>% arrange(county,state)
 ```
 
 recent: most recent statistics
