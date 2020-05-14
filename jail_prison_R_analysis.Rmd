@@ -15,6 +15,8 @@ jp %>% select(date,county,state,jail_population,resident_population,jail_incarce
 
 full_data <- merge(jp,nyt_data,by = c('date','county','state')) %>% select(date,county,state,jail_population,resident_population,cases,deaths,jail_incarceration_rate_per_100k,urbanicity)
 full_data %>% arrange(county,state)
+
+write.csv(full_data,"jail_county_df.csv")
 ```
 
 recent: most recent statistics
@@ -91,7 +93,8 @@ For each prison county, the cases over time, and the fraction of prisoners relea
 PRDF <- merge(pr,prison_df) %>% select(State,frac_released,county) %>% rename(state=State)
 nyt_data$county <- tolower(nyt_data$county)
 PRDF <- merge(nyt_data,PRDF)
-PRDF %>% select(county,state,frac_released,date,cases,deaths)
+PRDF <- PRDF %>% select(county,state,frac_released,date,cases,deaths)
+write.csv(PRDF,"prison_county_df.csv")
 ```
 
 
