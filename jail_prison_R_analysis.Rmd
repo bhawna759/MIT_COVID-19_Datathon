@@ -92,7 +92,7 @@ prison_df <- merge(statenames,prisons) %>%
   unique() %>% group_by(State,county) %>%
   mutate(prison_pop = sum(POPULATION)) %>%     # sum over all prisons in a county
   mutate(prison_capacity = sum(CAPACITY)) %>%  # sum over all prisons in a county
-  mutate(prison_fullness = prison_pop/prison_capacity) %>%  # sum over all prisons in a county
+  mutate(prison_fullness = mean(fullness)) %>%  # calculate average prison fullness
   select(State,county,prison_pop,prison_capacity,prison_fullness) %>% unique()
 prison_df
 ```
@@ -115,7 +115,6 @@ prison_counties_frac_released <- merge(prison_df, pr,by='State',all.x = TRUE) %>
   #select(countystate,frac_released) %>% unique()
   select(countystate,frac_released,prison_pop,prison_capacity,prison_fullness) %>%unique()
 prison_counties_frac_released
-
 ```
 
 
