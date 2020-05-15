@@ -1,0 +1,32 @@
+	(1)	(2)	(3)
+VARIABLES	log_diff_cases	log_diff_cases	log_diff_cases
+			
+log_frac_released	-0.078***	-0.121***	-0.114***
+	(0.009)	(0.009)	(0.008)
+female_perc		10.107***	9.924***
+		(1.050)	(1.009)
+black_pop_perc		2.383***	2.520***
+		(0.125)	(0.129)
+asian_pop_perc		8.408***	7.376***
+		(0.353)	(0.356)
+hisp_pop_perc		0.981***	0.759***
+		(0.096)	(0.120)
+population_density		0.000***	0.000***
+		(0.000)	(0.000)
+highrisk_agegroup_perc			46.171***
+			(4.383)
+land_area			0.000***
+			(0.000)
+age_55to64_perc			-1.955
+			(1.886)
+age_65to74_perc			-74.080***
+			(4.369)
+age_75to84_perc			-14.466**
+			(7.145)
+Constant	2.902***	-3.261***	-2.600***
+	(0.047)	(0.531)	(0.543)
+			
+Observations	13,720	13,319	13,319
+R-squared	0.005	0.208	0.233
+Robust standard errors in parentheses			
+*** p<0.01, ** p<0.05, * p<0.1			
