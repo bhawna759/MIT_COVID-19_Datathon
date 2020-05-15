@@ -10,10 +10,11 @@ nyt_data = read_csv('NYT_data/us-counties.csv') # https://github.com/nytimes/cov
 jp = read_csv('https://raw.githubusercontent.com/vera-institute/jail-population-data/master/jail_population.csv')
 jp <- jp %>% rename(county = county_name) %>% rename(state=state_name) %>% arrange(date)
 jp$county<-str_remove(jp$county," County")
-nyt_data %>% select(date,county,state,cases,deaths) %>% arrange(county)
-jp %>% select(date,county,state,jail_population,resident_population,jail_incarceration_rate_per_100k,urbanicity)
-
-full_data <- merge(jp,nyt_data,by = c('date','county','state')) %>% select(date,county,state,jail_population,resident_population,cases,deaths,jail_incarceration_rate_per_100k,urbanicity)
+jp
+nyt_data
+full_data <- merge(jp,nyt_data) %>% 
+  select(date,county,state,fips,jail_population,resident_population,cases,deaths,jail_incarceration_rate_per_100k,urbanicity)
+#full_data <- merge(jp,nyt_data,by = c('date','county','state')) %>% select(date,county,state,fips,jail_population,resident_population,cases,deaths,jail_incarceration_rate_per_100k,urbanicity)
 full_data %>% arrange(county,state)
 
 write.csv(full_data,"jail_county_df.csv")
@@ -80,7 +81,8 @@ prisons$VAL_DATE <- as.Date(prisons$VAL_DATE)
 prisons$COUNTY <- tolower(prisons$COUNTY)
 prisons <- prisons %>% rename(county = COUNTY,Code=STATE)
 str_list <- paste(c('CORRECTION','PRISON'), collapse="|")
-prisons <- prisons %>% filter(grepl(str_list,NAME)) %>% select(NAME,Code,county,POPULATION,CAPACITY) %>% 
+prisons <- prisons %>% filter(grepl(str_list,NAME)) %>%
+  select(NAME,Code,county,POPULATION,CAPACITY) %>% 
   mutate(POPULATION = ifelse(POPULATION<0, NA, POPULATION)) %>%  # convert negative values to NA
   mutate(CAPACITY = ifelse(CAPACITY<0, NA, CAPACITY)) %>%  # convert negative values to NA
   mutate(fullness = POPULATION/CAPACITY)
@@ -88,7 +90,7 @@ prisons <- prisons %>% filter(grepl(str_list,NAME)) %>% select(NAME,Code,county,
 statenames <- read_csv('state_abbreviations.csv') %>% select(State,Code)
 prison_df <- merge(statenames,prisons) %>% select(State,NAME,county) %>% unique()
 prison_df <- merge(statenames,prisons) %>% 
-  select(State,NAME,county, POPULATION, CAPACITY, fullness) %>% 
+  select(State,NAME,county, POPULATION, CAPACITY,fullness) %>% 
   unique() %>% group_by(State,county) %>%
   mutate(prison_pop = sum(POPULATION)) %>%     # sum over all prisons in a county
   mutate(prison_capacity = sum(CAPACITY)) %>%  # sum over all prisons in a county
@@ -144,7 +146,7 @@ nyt_with_prisons <- merge(nytdf, prison_counties_frac_released, all.x=TRUE) %>% 
   filter(date >= as.Date('2020-03-01')) %>%
   filter(!is.na(diff_cases)) %>%
   #select(countystate,date,cases,prison_county,frac_released,diff_cases)
-  select(countystate,date,cases,prison_county,frac_released,diff_cases,prison_pop,prison_capacity,prison_fullness)
+  select(countystate,fips,date,cases,prison_county,frac_released,diff_cases,prison_pop,prison_capacity,prison_fullness)
 
 #nyt_with_prisons
 
@@ -235,6 +237,46 @@ prison_counties_today <- prison_counties  %>% group_by(countystate) %>%
 prison_counties_today
 ggplot(prison_counties_today) + geom_point(aes(log(population_density),log(mean_diff_cases),color=(log_frac_released)))
 ```
+
+
+
+
+```{r}
+str_list <- paste(c('CORRECTION','PRISON'), collapse="|")
+prison_counties <- read_csv('prison_boundaries.csv') %>% filter(grepl(str_list,NAME))
+prison_county_fips <- prison_counties$COUNTYFIPS
+
+data <- read_csv('county_populations.csv') %>% mutate(fips = paste(STATE,COUNTY,sep="")) %>% select(fips) %>%
+  mutate(prison_county = ifelse(fips %in% prison_county_fips,1,0)) %>% mutate(prison_county = as.factor(prison_county))
+data
+
+library(usmap)
+
+plot_usmap(data = data,values="prison_county", size = .11) +
+  scale_fill_manual(name='Prison County',labels = c("No Prison","Prison"),values=c("white","black"))
+ 
+state_fips <- read_csv('NYT_data/us-states.csv') %>% select(state,fips) %>% rename(State = state)
+data2 <- merge(state_fips,pr,by='State',all.x=TRUE) %>% unique() %>% 
+  mutate(frac_released = ifelse(is.na(frac_released),0,frac_released)) %>%
+  select(fips,frac_released)
+data2
+
+plot_usmap(data = data2,values="log_frac_released", size = .11,labels=FALSE) +
+    scale_fill_continuous(low = "white", high = "darkgreen", name = "Fraction of prisoners released") + theme(legend.position = "right")
+
+plot_usmap(data = data2,values="frac_released", size = .11,labels=FALSE) +
+    scale_fill_gradient(low='white',high='darkgreen',name = "Fraction of prisoners released",trans='sqrt') + theme(legend.position = "right")
+```
+```{r}
+county_populations <- read_csv('county_populations.csv') %>% mutate(fips = paste(STATE,COUNTY,sep="")) %>% select(fips,CENSUS2010POP)
+
+county_covid_data <- nyt_data %>% group_by(fips) %>% filter(date == max(date)) %>% select(fips,cases)
+county_covid_data <- merge(county_populations,county_covid_data) %>% mutate(infection_rate = cases/CENSUS2010POP) %>% select(fips,infection_rate)
+plot_usmap(data = county_covid_data,values="infection_rate", size = .11) +
+    scale_fill_continuous(low = "white", high = "red", name = "infection_rate",trans='sqrt') + theme(legend.position = "right")
+
+```
+
 
 * MOSTLY UNRELATED WORK HERE AND BELOW, THROWING THINGS AT THE WALL, MUCH DOES NOT STICK *
 
