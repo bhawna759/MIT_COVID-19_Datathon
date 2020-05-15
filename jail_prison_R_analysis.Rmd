@@ -75,16 +75,25 @@ ggplot(data=melt(state_data, id=c('date'))) + geom_line(aes(date,value,color=var
 Prison analysis
 prison_df: state, prison name, and county
 ```{r}
-
 prisons <- read_csv('prison_boundaries.csv')
+prisons$VAL_DATE <- as.Date(prisons$VAL_DATE)
 prisons$COUNTY <- tolower(prisons$COUNTY)
 prisons <- prisons %>% rename(county = COUNTY,Code=STATE)
 str_list <- paste(c('CORRECTION','PRISON'), collapse="|")
-prisons <- prisons %>% filter(grepl(str_list,NAME))
-prisons %>% select(NAME,Code,county)
+prisons <- prisons %>% filter(grepl(str_list,NAME)) %>% select(NAME,Code,county,POPULATION,CAPACITY) %>% 
+  mutate(POPULATION = ifelse(POPULATION<0, NA, POPULATION)) %>%  # convert negative values to NA
+  mutate(CAPACITY = ifelse(CAPACITY<0, NA, CAPACITY)) %>%  # convert negative values to NA
+  mutate(fullness = POPULATION/CAPACITY)
 
 statenames <- read_csv('state_abbreviations.csv') %>% select(State,Code)
 prison_df <- merge(statenames,prisons) %>% select(State,NAME,county) %>% unique()
+prison_df <- merge(statenames,prisons) %>% 
+  select(State,NAME,county, POPULATION, CAPACITY, fullness) %>% 
+  unique() %>% group_by(State,county) %>%
+  mutate(prison_pop = sum(POPULATION)) %>%     # sum over all prisons in a county
+  mutate(prison_capacity = sum(CAPACITY)) %>%  # sum over all prisons in a county
+  mutate(prison_fullness = prison_pop/prison_capacity) %>%  # sum over all prisons in a county
+  select(State,county,prison_pop,prison_capacity,prison_fullness) %>% unique()
 prison_df
 ```
 
@@ -102,14 +111,15 @@ pr
 
 prison_counties_frac_released <- merge(prison_df, pr,by='State',all.x = TRUE) %>%
   mutate(frac_released = ifelse(is.na(frac_released),0,frac_released)) %>%
-  mutate(countystate = paste(county,State,sep=", ")) %>% 
-  select(countystate,frac_released) %>% unique()
+  mutate(countystate = paste(county,State,sep=", ")) %>%
+  #select(countystate,frac_released) %>% unique()
+  select(countystate,frac_released,prison_pop,prison_capacity,prison_fullness) %>%unique()
 prison_counties_frac_released
 
 ```
 
 
-Make two models
+GLMs
 
 Model 1:
 Restricted to counties containing a prison
@@ -123,8 +133,8 @@ Model 3:
 Considering all counties 
 difference in cases (cases from today - cases from 7 days ago) ~ total county population, prison indicator function * fraction released, prison indicator function, county population density
 ```{r}
-county_pop <- read_csv('county_demographics_df.csv')%>% mutate(countystate = paste(tolower(county),state,sep = ", ")) %>%
-  select(countystate,tot_pop,population_density)
+county_pop <- read_csv('county_demographics_df.csv')%>% mutate(countystate = paste(tolower(county),state,sep = ", ")) #%>%
+  #select(countystate,tot_pop,population_density)
 
 nytdf <- nyt_data %>% mutate(countystate = paste(tolower(county),state,sep=", ")) %>%
   mutate(prison_county = ifelse(countystate %in% prison_counties_frac_released$countystate,1,0)) %>% unique()
@@ -134,7 +144,10 @@ nyt_with_prisons <- merge(nytdf, prison_counties_frac_released, all.x=TRUE) %>% 
   mutate(diff_cases = cases-lag(cases,7)) %>%
   filter(date >= as.Date('2020-03-01')) %>%
   filter(!is.na(diff_cases)) %>%
-  select(countystate,date,cases,prison_county,frac_released,diff_cases)
+  #select(countystate,date,cases,prison_county,frac_released,diff_cases)
+  select(countystate,date,cases,prison_county,frac_released,diff_cases,prison_pop,prison_capacity,prison_fullness)
+
+#nyt_with_prisons
 
 prison_pop_df <- merge(nyt_with_prisons,county_pop,all.x=TRUE)
 #nyt_with_prisons
@@ -160,19 +173,68 @@ prison_pop_df_with_indicator <-prison_pop_df %>% mutate(frac_released_for_indica
 
 model3 <- glm(diff_cases ~ tot_pop + int_prison_county_frac_released + prison_county + population_density ,data = prison_pop_df_with_indicator)
 summary(model3)
+
+with(summary(model1), 1 - deviance/null.deviance)
+with(summary(model2), 1 - deviance/null.deviance)
+with(summary(model3), 1 - deviance/null.deviance)
 ```
+
+Model 4:
+Considering all counties 
+difference in cases (cases from today - cases from 7 days ago) ~ total county population, prison indicator function * fraction released, prison indicator function, county population density, high risk age group
+
+Model 5:
+Restricted to counties containing a prison
+difference in cases (cases from today - cases from 7 days ago) ~ total county population, fraction of prisoners released statewide, county population density, prison fullness
+
+Model 6:
+Restricted to counties containing a prison
+difference in cases (cases from today - cases from 7 days ago) ~ total county population, fraction of prisoners released statewide, county population density, prison fullness, high risk age group
+
+Model 7:
+Restricted to counties containing a prison
+difference in cases (cases from today - cases from 7 days ago) ~ total county population, fraction of prisoners released statewide, county population density, high risk age group
+
+```{r}
+prison_pop_df_with_indicator <-prison_pop_df %>% mutate(frac_released_for_indicator = ifelse(is.na(frac_released),0,frac_released)) %>%
+  mutate(int_prison_county_frac_released = prison_county*frac_released_for_indicator)
+
+model4 <- glm(diff_cases ~ tot_pop + int_prison_county_frac_released + prison_county + population_density + highrisk_agegroup_perc,data = prison_pop_df_with_indicator)
+model5 <- glm(diff_cases ~ tot_pop + frac_released + population_density + prison_fullness, data = prison_counties)
+model6 <- glm(diff_cases ~ tot_pop + frac_released + population_density + prison_fullness + highrisk_agegroup_perc, data = prison_counties)
+model7 <- glm(diff_cases ~ tot_pop + frac_released + population_density + highrisk_agegroup_perc, data = prison_counties)
+
+summary(model7)
+summary(model6)
+summary(model5)
+summary(model4)
+
+extractAIC(model7)
+extractAIC(model6)
+extractAIC(model5)
+extractAIC(model4)
+
+with(summary(model7), 1 - deviance/null.deviance)
+with(summary(model6), 1 - deviance/null.deviance)
+with(summary(model5), 1 - deviance/null.deviance)
+with(summary(model4), 1 - deviance/null.deviance)
+
+```
+
+
 
 Some data visualization, consider the mean change in cases as a function of fraction released, population density
 ```{r}
 prison_pop_df_today <- prison_pop_df  %>% group_by(countystate) %>%
-  mutate(mean_diff_cases = mean(diff_cases)) %>% filter(date == as.Date('2020-05-11'))
+  mutate(mean_diff_cases = mean(diff_cases)) %>% filter(date == as.Date('2020-05-11')) 
 prison_pop_df_today
 ggplot(prison_pop_df_today) + geom_point(aes(log(population_density),log(mean_diff_cases),color=prison_county))
 
 prison_counties_today <- prison_counties  %>% group_by(countystate) %>%
-  mutate(mean_diff_cases = mean(diff_cases)) %>% filter(date == as.Date('2020-05-11'))
+  mutate(mean_diff_cases = mean(diff_cases)) %>% filter(date == as.Date('2020-05-11'))%>%
+  mutate(log_frac_released = ifelse(is.infinite(log(frac_released)),-9,log(frac_released)))
 prison_counties_today
-ggplot(prison_counties_today) + geom_point(aes(log(population_density),log(mean_diff_cases),color=(frac_released)))
+ggplot(prison_counties_today) + geom_point(aes(log(population_density),log(mean_diff_cases),color=(log_frac_released)))
 ```
 
 * MOSTLY UNRELATED WORK HERE AND BELOW, THROWING THINGS AT THE WALL, MUCH DOES NOT STICK *
