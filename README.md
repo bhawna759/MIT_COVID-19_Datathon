@@ -48,8 +48,8 @@ d: Demographic controls (age, race, gender, etc.)
 
 Time Series Model : Phophet and MLP 
 
-![Results](https://github.com/CindyXin97/MIT_COVID-19_Datathon/blob/master/Results/Prediction%20Confirmed%20Cases%20Num%20in%20Michi.png)
-![Image description](link-to-image)
+![Prediction of Confirmed Cases In Michi](https://github.com/CindyXin97/MIT_COVID-19_Datathon/blob/master/Results/Prediction%20Confirmed%20Cases%20Num%20in%20Michi.png)
+![Prediction of Confirmed Cases In Cali](https://github.com/CindyXin97/MIT_COVID-19_Datathon/blob/master/Results/Prediction%20confirmed_cases%20Number%20in%20Cali.png)
 
 # Results 
 
