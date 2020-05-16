@@ -48,12 +48,12 @@ d: Demographic controls (age, race, gender, etc.)
 
 Time Series Model : Phophet and MLP 
 
-![Image description](link-to-image)
+![Results](https://github.com/CindyXin97/MIT_COVID-19_Datathon/blob/master/Results/Output.png)
 ![Image description](link-to-image)
 
 # Results 
 
-![Image description](link-to-image)
+![Results](https://github.com/CindyXin97/MIT_COVID-19_Datathon/blob/master/Results/Output.png)
 
 Fraction released and county infection rates, with covariate controls
 Robust standard errors in parentheses
