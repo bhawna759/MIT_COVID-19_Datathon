@@ -96,17 +96,43 @@ reg log_diff_cases log_frac_released female_perc black_pop_perc asian_pop_perc h
 
 	**** (5). Output for reporting
 
-
+clear
+import delimited "/Users/rachelrosenberg/Box/Rachel's Personal Folder/covid19/MIT_COVID-19_Datathon/prison_county_df.csv"
+	
+destring frac_released, force replace
+destring population_density, force replace
+destring tot_pop, force replace
+destring prison_capacity, force replace
+destring prison_pop, force replace
+destring highrisk_agegroup_perc, force replace
+	
 //  OLS regression
 
-quietly reg log_diff_cases log_frac_released, ro
+ glm diff_cases prison_county population_density tot_pop, ro
+outreg2 using "Correlation_counties.xls", dec(3) replace excel
+
+ glm diff_cases frac_released population_density tot_pop if prison_county==1, ro
 outreg2 using "Output.xls", dec(3) replace excel
 
-quietly reg log_diff_cases log_frac_released female_perc black_pop_perc asian_pop_perc hisp_pop_perc population_density, ro
+ glm diff_cases frac_released population_density tot_pop prison_pop if prison_county==1, ro
 outreg2 using "Output.xls", dec(3) append excel
 
-quietly reg log_diff_cases log_frac_released female_perc black_pop_perc asian_pop_perc hisp_pop_perc population_density highrisk_agegroup_perc land_area age_55to64_perc age_65to74_perc age_75to84_perc, ro
+ glm diff_cases frac_released population_density tot_pop prison_pop highrisk_agegroup_perc if prison_county==1, ro
 outreg2 using "Output.xls", dec(3) append excel
+
+
+
+quietly reg log_diff_cases log_frac_released, ro
+outreg2 using "Output_log.xls", dec(3) replace excel
+
+quietly reg log_diff_cases log_frac_released, ro
+outreg2 using "Output_log.xls", dec(3) replace excel
+
+quietly reg log_diff_cases log_frac_released female_perc black_pop_perc asian_pop_perc hisp_pop_perc population_density, ro
+outreg2 using "Output_log.xls", dec(3) append excel
+
+quietly reg log_diff_cases log_frac_released female_perc black_pop_perc asian_pop_perc hisp_pop_perc population_density highrisk_agegroup_perc land_area age_55to64_perc age_65to74_perc age_75to84_perc, ro
+outreg2 using "Output_log.xls", dec(3) append excel
 
 
 
