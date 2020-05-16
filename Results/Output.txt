@@ -1,0 +1,19 @@
+	(1)	(2)	(3)
+VARIABLES	diff_cases	diff_cases	diff_cases
+			
+frac_released	-342.242***	-457.922***	-476.597***
+	(48.482)	(51.594)	(52.383)
+population_density	0.157***	0.157***	0.158***
+	(0.007)	(0.007)	(0.007)
+tot_pop	0.000***	0.000***	0.000***
+	(0.000)	(0.000)	(0.000)
+prison_pop		0.006***	0.007***
+		(0.002)	(0.002)
+highrisk_agegroup_perc			277.201***
+			(45.005)
+Constant	-2.908	-9.075**	-61.013***
+	(3.306)	(3.863)	(11.469)
+			
+Observations	37,772	33,790	33,790
+Robust standard errors in parentheses			
+*** p<0.01, ** p<0.05, * p<0.1			
