@@ -1,0 +1,42 @@
+﻿var,desc,data source
+state,,
+state_abbr,,
+jail_pop_before_covid,early march jail pop,VERA
+jail_pop_recent,most recent jail pop,VERA
+num_decrease,jail pop decrease,VERA
+pct_decrease,,VERA
+suspended_vis,all visitation suspended,prisonpolicy.org
+legal_vis_only,only legal visitation allowed,prisonpolicy.org
+telephone_changes,,prisonpolicy.org
+video_call_changes,,prisonpolicy.org
+communication_changes,,prisonpolicy.org
+hygiene_product,increased access to hygiene products,prisonpolicy.org
+screen_employees,codiv screening for employees,prisonpolicy.org
+screen_new_inmates,codiv screening for inmates,prisonpolicy.org
+suspend_transfers,,prisonpolicy.org
+new_inmate_isolation,,prisonpolicy.org
+suspend_medical_copays,,prisonpolicy.org
+expedite_parole,,prisonpolicy.org
+reduce_staff,reduce number of in-person staff,prisonpolicy.org
+total_quarantine,total quarantine of state prison inmates,prisonpolicy.org
+lockdown_pos_covid,complete lockdown on facilities where there are positive covid cases,prisonpolicy.org
+num_prison_releases,UCLA prison releases,UCLA prison releases
+prison_pop_before_release,UCLA prison pop before release,UCLA prison releases
+pct_pop_released,,UCLA prison releases
+prison_release_policy_ind,release policy indicated,UCLA prison releases
+prison_rel_parole_violation,release of parole violators for technical reasons,UCLA prison releases
+prison_rel_nv_crimes,release for non-violent crimes,UCLA prison releases
+prison_rel_short_sentence,release of those with a short time left on their sentence,UCLA prison releases
+prison_rel_vulnerable_pop,release of vulnerable prisoners,UCLA prison releases
+prison_rel_other_pop,release of other specific population,UCLA prison releases
+num_jail_releases,,UCLA jail releases
+jail_pop_before_covid,,UCLA jail releases
+pct_pop_released,,UCLA jail releases
+jail_rel_policy_ind,,UCLA jail releases
+jail_rel_parole_violation,,UCLA jail releases
+jail_rel_nv_crimes,,UCLA jail releases
+jail_rel_short_sentence,,UCLA jail releases
+jail_rel_vulnerable_pop,,UCLA jail releases
+jail_rel_other_pop,,UCLA jail releases
+reduce_admission_prosecutor,"addmission reduction at the prosecutor level (no bail, etc)",UCLA sheet 27
+reduce_admission_sheriff,"addmission reduction at the sheriff level (suspend arrest, cite & release, etc)",UCLA sheet 27
