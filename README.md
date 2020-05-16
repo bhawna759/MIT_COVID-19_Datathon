@@ -53,7 +53,7 @@ Time Series Model : Phophet and MLP
 
 # Results 
 
-![Results](https://github.com/CindyXin97/MIT_COVID-19_Datathon/blob/master/Results/Output.png)
+![Results](https://github.com/CindyXin97/MIT_COVID-19_Datathon/blob/master/Results/Screen%20Shot%202020-05-16%20at%206.01.59%20PM.png)
 
 Fraction released and county infection rates, with covariate controls
 Robust standard errors in parentheses
